@@ -1,0 +1,7 @@
+python-dotenv
+soundfile
+numpy
+scipy
+
+websockets
+fastapi[standard]
