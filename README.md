@@ -1,3 +1,7 @@
+# Configuration
+
+> Create `.env` file and then fill out fields
+
 # Server Side Setup
 
 ```shell
@@ -10,12 +14,13 @@ source venv/bin/activate
 pip install -r requirements.txt
 pip install rtclient-0.5.2-py3-none-any.whl
 
-python app.py
+# dev mode
+uvicorn main:app --reload
 
-# or
-fastapi dev main.py
+# prod mode
+uvicorn main:app
 ```
 
-# Frontend Setup
+# Frontend
 
-> 打开`client.html`
+> open `http://127.0.0.1:8000/`

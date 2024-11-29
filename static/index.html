@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <h1>Realtime Chat</h1>
+    <h2>Your ID: <span id="ws-id"></span></h2>
+    语音模式：
+    <button onclick="start()">Start</button>
+    <button onclick="stop()">Stop</button>
+    <br />
+    <br />
+    文本模式：
+    <input type="text" id="message" autocomplete="off" />
+    <button>Send</button>
+    <ul id="messages"></ul>
+  </body>
+  <script src="static/main.js"></script>
+  <script src="static/player.js"></script>
+</html>
