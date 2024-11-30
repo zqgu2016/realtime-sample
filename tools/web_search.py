@@ -1,9 +1,8 @@
 import asyncio
+import os
 
 import aiohttp
 from bs4 import BeautifulSoup
-
-from utils import get_env_var
 
 
 async def bing_search(query, subscription_key):
@@ -45,7 +44,7 @@ async def web_search(query: str) -> str:
         str: The search results.
     """
     try:
-        subscription_key = get_env_var("BING_SEARCH_KEY")
+        subscription_key = os.environ.get("BING_SEARCH_KEY")
         results = await bing_search(query, subscription_key)
 
         # 获取前3条结果

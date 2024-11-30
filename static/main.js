@@ -3,35 +3,74 @@ let ws;
 let audioRecorder;
 let audioPlayer;
 
-function appendContent(text) {
-  const messages = document.getElementById("messages");
-  const message = document.createElement("li");
-  const content = document.createTextNode(text);
-  message.appendChild(content);
-  messages.appendChild(message);
-}
+let recordingActive = false;
+let buffer = new Uint8Array();
+
+const chatArea = document.querySelector("#chat-area");
+const inputField = document.querySelector("#message-input");
+const voiceBtn = document.querySelector("#voice-button");
+const voiceIcon = document.querySelector("#voice-icon");
 
 function makeNewTextBlock(text = "") {
   let newElement = document.createElement("p");
   newElement.textContent = text;
-  formReceivedTextContainer.appendChild(newElement);
+  chatArea.appendChild(newElement);
 }
 
 function appendToTextBlock(text) {
-  let textElements = formReceivedTextContainer.children;
-  if (textElements.length == 0) {
+  let textElements = chatArea.children;
+  if (textElements.length === 0) {
     makeNewTextBlock();
   }
   textElements[textElements.length - 1].textContent += text;
 }
 
+async function sendMessage() {
+  const message = inputField.value.trim();
+
+  if (!message) return;
+
+  ws.send(JSON.stringify({
+    type: "conversation.item.create",
+    text: message,
+  }));
+  inputField.value = "";
+
+  makeNewTextBlock("User: " + message);
+  inputField.value = "";
+  makeNewTextBlock("ChatBot: " + message);
+}
+
+function toggleVoiceInput() {
+  recordingActive = !recordingActive;
+
+  if (recordingActive) {
+    startVoiceRecognition();
+  } else {
+    stopVoiceRecognition();
+  }
+}
+
+function startVoiceRecognition() {
+  voiceBtn.disabled = true;
+  voiceBtn.classList.add("cursor-not-allowed");
+  voiceBtn.classList.add("opacity-50");
+  initWs();
+  resetAudio(true);
+}
+
+function stopVoiceRecognition() {
+  voiceIcon.src = "static/assets/microphone-solid.svg";
+  ws.close();
+  resetAudio(false);
+}
+
 function initWs() {
   const client_id = Date.now();
-  document.querySelector("#ws-id").textContent = client_id;
   ws = new WebSocket(`ws://localhost:8000/realtime/${client_id}`);
 
-  ws.onopen = function (event) {
-    appendContent("Connected to server");
+  ws.onopen = function () {
+    console.log("Connected to server");
   };
 
   audioPlayer = new Player();
@@ -91,16 +130,13 @@ function initWs() {
   };
 
   ws.onclose = function (event) {
-    appendContent("Disconnected from server");
+    console.log("Disconnected from server");
   };
 
   ws.onerror = function (error) {
-    appendContent(error.message);
+    console.log(error.message);
   };
 }
-
-let recordingActive = false;
-let buffer = new Uint8Array();
 
 function combineArray(newData) {
   const newBuffer = new Uint8Array(buffer.length + newData.length);
@@ -112,16 +148,19 @@ function combineArray(newData) {
 function processAudioRecordingBuffer(data) {
   const uint8Array = new Uint8Array(data);
   combineArray(uint8Array);
+  // 采样率是24000，样本数4800，表示每次处理: 4800/24000 = 0.2秒
+  // 1. 提供了稳定的音频流，通过合理的缓冲，确保音频数据传输的流畅性和有效性。
+  // 2. 在实时音频应用中，合理的时间窗口可以确保低延迟和高质量的音频处理。
   if (buffer.length >= 4800) {
     const toSend = new Uint8Array(buffer.slice(0, 4800));
     buffer = new Uint8Array(buffer.slice(4800));
     const regularArray = String.fromCharCode(...toSend);
     const base64 = btoa(regularArray);
     if (recordingActive) {
-      realtimeStreaming.send({
+      ws.send(JSON.stringify({
         type: "input_audio_buffer.append",
         audio: base64,
-      });
+      }));
     }
   }
 }
@@ -142,25 +181,13 @@ async function resetAudio(startRecording) {
 
   if (startRecording) {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
     audioRecorder.start(stream);
     recordingActive = true;
+
+    voiceBtn.disabled = false;
+    voiceIcon.src = "static/assets/stop-solid.svg";
+    voiceBtn.classList.remove("cursor-not-allowed");
+    voiceBtn.classList.remove("opacity-50");
   }
-}
-
-async function start() {
-  initWs();
-  // resetAudio(true);
-}
-
-function send(event) {
-  event.preventDefault();
-
-  const input = document.querySelector("#message");
-  ws.send(input.value);
-  input.value = "";
-}
-
-function stop() {
-  ws.close();
-  resetAudio(false);
 }
